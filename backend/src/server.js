@@ -3,6 +3,8 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const { connectDB } = require('./config/db');
 const errorHandler = require('./middleware/errorHandler');
+const User = require('./models/User');
+const seedData = require('./seed/seed');
 
 // Load environment variables
 dotenv.config();
@@ -14,29 +16,36 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-const User = require('./models/User');
-const seedData = require('./seed/seed');
-
+let isSeeding = false;
 let isDbInitialized = false;
 
-// Auto DB Connect & Seed Middleware for Serverless & Direct execution
+const ensureDbAndSeed = async () => {
+  if (isDbInitialized) return;
+  if (isSeeding) return;
+  isSeeding = true;
+  try {
+    await connectDB();
+    const count = await User.countDocuments();
+    if (count === 0) {
+      console.log('[Campus IQ] Database is empty. Auto-seeding initial data...');
+      await seedData(true);
+    }
+    isDbInitialized = true;
+    console.log('[Campus IQ] Database & Seed initialization ready.');
+  } catch (err) {
+    console.error('[Campus IQ] Database initialization error:', err);
+  } finally {
+    isSeeding = false;
+  }
+};
+
+// Middleware to ensure DB is connected before processing requests
 app.use(async (req, res, next) => {
   if (req.path === '/api/health') return next();
-  try {
-    if (!isDbInitialized) {
-      await connectDB();
-      const count = await User.countDocuments();
-      if (count === 0) {
-        console.log('[Campus IQ] Database is empty. Auto-seeding initial data...');
-        await seedData(true);
-      }
-      isDbInitialized = true;
-    }
-    next();
-  } catch (err) {
-    console.error('[Campus IQ] DB Init Error:', err);
-    next(err);
+  if (!isDbInitialized) {
+    await ensureDbAndSeed();
   }
+  next();
 });
 
 // Health Check API
@@ -68,23 +77,11 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-// Start Server immediately on PORT and connect to DB in background
+// Start Server immediately and initialize DB
 if (process.env.NODE_ENV !== 'test') {
   app.listen(PORT, () => {
     console.log(`[Campus IQ Server] Listening on http://localhost:${PORT}`);
-    connectDB().then(async () => {
-      try {
-        const count = await User.countDocuments();
-        if (count === 0) {
-          console.log('[Campus IQ] Database is empty. Auto-seeding initial data...');
-          await seedData(true);
-        }
-        isDbInitialized = true;
-        console.log('[Campus IQ] Initial database connection & seed ready.');
-      } catch (err) {
-        console.error('[Campus IQ] Auto-seed failed:', err);
-      }
-    });
+    ensureDbAndSeed();
   });
 }
 
