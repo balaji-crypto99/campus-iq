@@ -7,6 +7,8 @@ const connectDB = async () => {
   if (mongoose.connection.readyState === 1) {
     return;
   }
+
+  mongoose.set('bufferTimeoutMS', 120000);
   const primaryUri = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/campus_iq';
 
   try {

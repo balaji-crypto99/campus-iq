@@ -39,12 +39,13 @@ app.use(async (req, res, next) => {
   }
 });
 
-// API Routes
+// Health Check API
 app.get('/api/health', (req, res) => {
   res.status(200).json({
     success: true,
     service: 'Campus IQ Backend API',
     status: 'ONLINE',
+    dbInitialized: isDbInitialized,
     timestamp: new Date(),
   });
 });
@@ -67,23 +68,22 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const User = require('./models/User');
-const seedData = require('./seed/seed');
-
-// Start Server after connecting to MongoDB
+// Start Server immediately on PORT and connect to DB in background
 if (process.env.NODE_ENV !== 'test') {
-  connectDB().then(async () => {
-    try {
-      const count = await User.countDocuments();
-      if (count === 0) {
-        console.log('[Campus IQ] Database is empty. Auto-seeding initial data...');
-        await seedData(true);
+  app.listen(PORT, () => {
+    console.log(`[Campus IQ Server] Listening on http://localhost:${PORT}`);
+    connectDB().then(async () => {
+      try {
+        const count = await User.countDocuments();
+        if (count === 0) {
+          console.log('[Campus IQ] Database is empty. Auto-seeding initial data...');
+          await seedData(true);
+        }
+        isDbInitialized = true;
+        console.log('[Campus IQ] Initial database connection & seed ready.');
+      } catch (err) {
+        console.error('[Campus IQ] Auto-seed failed:', err);
       }
-    } catch (err) {
-      console.error('[Campus IQ] Auto-seed failed:', err);
-    }
-    app.listen(PORT, () => {
-      console.log(`[Campus IQ Server] Listening on http://localhost:${PORT}`);
     });
   });
 }
