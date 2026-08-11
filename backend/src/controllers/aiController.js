@@ -52,13 +52,16 @@ exports.reanalyzeGrievance = async (req, res, next) => {
     grievance.keywords = aiResult.keywords;
     grievance.aiStatus = 'SUCCESS';
 
-    await grievance.save();
+    const populatedGrievance = await Grievance.findById(grievance._id)
+      .populate('submittedBy', 'name email studentId department phone year')
+      .populate('assignedTo', 'name email department')
+      .populate('relatedGrievances', 'title category priority status location severityScore createdAt');
 
     res.status(200).json({
       success: true,
       message: 'AI re-analysis completed successfully.',
       aiAnalysis,
-      grievance,
+      grievance: populatedGrievance,
     });
   } catch (error) {
     next(error);

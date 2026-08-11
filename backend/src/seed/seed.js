@@ -105,10 +105,12 @@ const REALISTIC_COMPLAINTS = [
   },
 ];
 
-const seedData = async () => {
+const seedData = async (skipDisconnect = false) => {
   try {
-    console.log('[Seed] Connecting to database...');
-    await connectDB();
+    if (mongoose.connection.readyState !== 1) {
+      console.log('[Seed] Connecting to database...');
+      await connectDB();
+    }
 
     console.log('[Seed] Cleaning old collection data...');
     await Promise.all([
@@ -331,7 +333,9 @@ const seedData = async () => {
   } catch (err) {
     console.error('[Seed Error]', err);
   } finally {
-    await disconnectDB();
+    if (!skipDisconnect) {
+      await disconnectDB();
+    }
   }
 };
 

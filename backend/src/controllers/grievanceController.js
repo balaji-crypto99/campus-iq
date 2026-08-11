@@ -279,8 +279,9 @@ exports.updateGrievance = async (req, res, next) => {
     });
 
     const updated = await Grievance.findById(grievance._id)
-      .populate('submittedBy', 'name email studentId')
-      .populate('assignedTo', 'name email');
+      .populate('submittedBy', 'name email studentId department phone year')
+      .populate('assignedTo', 'name email department')
+      .populate('relatedGrievances', 'title category priority status location severityScore createdAt');
 
     res.status(200).json({
       success: true,

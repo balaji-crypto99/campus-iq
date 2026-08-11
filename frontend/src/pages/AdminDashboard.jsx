@@ -31,6 +31,28 @@ import {
   Area,
 } from 'recharts';
 
+const CustomChartTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    const name = data.name || data.payload?.category || data.payload?.department || data.payload?.date || 'Grievance Count';
+    const value = data.value;
+    const color = data.color || data.fill || '#6366f1';
+
+    return (
+      <div className="bg-slate-900 border border-slate-700 p-3 rounded-xl shadow-2xl space-y-1 text-xs">
+        <div className="flex items-center space-x-2 font-bold text-white">
+          <span className="w-2.5 h-2.5 rounded-full inline-block shrink-0" style={{ backgroundColor: color }} />
+          <span className="text-indigo-200">{name}</span>
+        </div>
+        <div className="text-slate-300 font-medium">
+          Total Grievances: <span className="font-extrabold text-white font-mono">{value}</span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [categories, setCategories] = useState([]);
@@ -133,9 +155,7 @@ export default function AdminDashboard() {
               <BarChart data={categories.slice(0, 7)}>
                 <XAxis dataKey="category" stroke="#64748b" fontSize={11} tickLine={false} />
                 <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
-                />
+                <Tooltip content={<CustomChartTooltip />} />
                 <Bar dataKey="count" fill="#6366f1" radius={[6, 6, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -159,9 +179,7 @@ export default function AdminDashboard() {
                 </defs>
                 <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} />
                 <YAxis stroke="#64748b" fontSize={11} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
-                />
+                <Tooltip content={<CustomChartTooltip />} />
                 <Area type="monotone" dataKey="total" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorTotal)" strokeWidth={2} />
               </AreaChart>
             </ResponsiveContainer>
@@ -179,9 +197,7 @@ export default function AdminDashboard() {
               <BarChart data={departments.slice(0, 6)} layout="vertical">
                 <XAxis type="number" stroke="#64748b" fontSize={11} hide />
                 <YAxis dataKey="department" type="category" stroke="#94a3b8" fontSize={11} width={130} tickLine={false} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
-                />
+                <Tooltip content={<CustomChartTooltip />} />
                 <Bar dataKey="count" fill="#3b82f6" radius={[0, 6, 6, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -192,30 +208,50 @@ export default function AdminDashboard() {
         <div className="glass-card rounded-2xl p-6 border border-slate-800 space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-base font-bold text-white">Top Category Proportions</h3>
-            <span className="text-xs text-slate-400">Percentage %</span>
+            <span className="text-xs text-slate-400">Distribution %</span>
           </div>
-          <div className="h-64 flex items-center justify-center">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={categories.slice(0, 5)}
-                  dataKey="count"
-                  nameKey="category"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  innerRadius={45}
-                  paddingAngle={4}
-                >
-                  {categories.slice(0, 5).map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '12px' }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <div className="h-56">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={categories.slice(0, 5)}
+                    dataKey="count"
+                    nameKey="category"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={75}
+                    innerRadius={42}
+                    paddingAngle={4}
+                  >
+                    {categories.slice(0, 5).map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomChartTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Category Badges with counts */}
+            <div className="space-y-2 text-xs">
+              {categories.slice(0, 5).map((cat, index) => {
+                const totalCatCount = categories.reduce((sum, c) => sum + c.count, 0) || 1;
+                const percent = Math.round((cat.count / totalCatCount) * 100);
+                return (
+                  <div key={cat.category} className="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/80 border border-slate-800/80">
+                    <div className="flex items-center space-x-2.5 truncate">
+                      <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                      <span className="font-bold text-white truncate">{cat.category}</span>
+                    </div>
+                    <div className="flex items-center space-x-2 font-mono shrink-0">
+                      <span className="font-extrabold text-indigo-300">{cat.count}</span>
+                      <span className="text-slate-400 text-[10px]">({percent}%)</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
 

@@ -42,9 +42,21 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
+const User = require('./models/User');
+const seedData = require('./seed/seed');
+
 // Start Server after connecting to MongoDB
 if (process.env.NODE_ENV !== 'test') {
-  connectDB().then(() => {
+  connectDB().then(async () => {
+    try {
+      const count = await User.countDocuments();
+      if (count === 0) {
+        console.log('[Campus IQ] Database is empty. Auto-seeding initial data...');
+        await seedData(true);
+      }
+    } catch (err) {
+      console.error('[Campus IQ] Auto-seed failed:', err);
+    }
     app.listen(PORT, () => {
       console.log(`[Campus IQ Server] Listening on http://localhost:${PORT}`);
     });

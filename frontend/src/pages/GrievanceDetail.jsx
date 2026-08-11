@@ -74,6 +74,9 @@ export default function GrievanceDetail() {
 
       if (res.data.success) {
         setGrievance(res.data.grievance);
+        if (res.data.grievance.status) setStatus(res.data.grievance.status);
+        if (res.data.grievance.priority) setPriority(res.data.grievance.priority);
+        if (res.data.grievance.assignedDepartment) setDepartment(res.data.grievance.assignedDepartment);
         setMessage('Grievance details updated successfully.');
       }
     } catch (err) {
@@ -237,28 +240,33 @@ export default function GrievanceDetail() {
             <h3 className="text-base font-bold text-white">Potentially Related Complaints ({grievance.relatedGrievances.length})</h3>
           </div>
           <div className="space-y-3">
-            {grievance.relatedGrievances.map((rel) => (
-              <div
-                key={rel._id}
-                className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between hover:border-slate-700 transition-all text-xs"
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <span className="font-mono text-indigo-400">#{rel._id.slice(-6)}</span>
-                    <PriorityBadge priority={rel.priority} />
-                    <StatusBadge status={rel.status} />
-                  </div>
-                  <p className="font-semibold text-slate-200">{rel.title}</p>
-                </div>
-
-                <Link
-                  to={`/grievances/${rel._id}`}
-                  className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 font-bold transition-colors"
+            {grievance.relatedGrievances.map((rel) => {
+              const relId = typeof rel === 'object' && rel !== null ? rel._id : rel;
+              if (!relId) return null;
+              const relTitle = rel?.title || `Complaint #${String(relId).slice(-6)}`;
+              return (
+                <div
+                  key={relId}
+                  className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between hover:border-slate-700 transition-all text-xs"
                 >
-                  Review
-                </Link>
-              </div>
-            ))}
+                  <div className="space-y-1">
+                    <div className="flex items-center space-x-2">
+                      <span className="font-mono text-indigo-400">#{String(relId).slice(-6)}</span>
+                      {rel?.priority && <PriorityBadge priority={rel.priority} />}
+                      {rel?.status && <StatusBadge status={rel.status} />}
+                    </div>
+                    <p className="font-semibold text-slate-200">{relTitle}</p>
+                  </div>
+
+                  <Link
+                    to={`/grievances/${relId}`}
+                    className="px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 font-bold transition-colors"
+                  >
+                    Review
+                  </Link>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
